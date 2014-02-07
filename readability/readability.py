@@ -168,6 +168,7 @@ class Document:
                         if article is None:
                             article = self.html
                 cleaned_article = self.sanitize(article, candidates)
+
                 article_length = len(cleaned_article or '')
                 retry_length = self.options.get(
                     'retry_length',
@@ -411,7 +412,9 @@ class Document:
             elem.drop_tree()
 
         for elem in self.tags(node, "iframe"):
-            if not ("src" in elem.attrib and REGEXES["videoRe"].search(elem.attrib["src"])):
+            if "src" in elem.attrib and REGEXES["videoRe"].search(elem.attrib["src"]):
+                elem.text = "VIDEO" # ADD content to iframe text node to force <iframe></iframe> proper output
+            else:
                 elem.drop_tree()
 
         allowed = {}
