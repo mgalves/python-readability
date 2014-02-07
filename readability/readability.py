@@ -32,7 +32,7 @@ REGEXES = {
     #'trimRe': re.compile('^\s+|\s+$/'),
     #'normalizeRe': re.compile('\s{2,}/'),
     #'killBreaksRe': re.compile('(<br\s*\/?>(\s|&nbsp;?)*){1,}/'),
-    #'videoRe': re.compile('http:\/\/(www\.)?(youtube|vimeo)\.com', re.I),
+    'videoRe': re.compile('http:\/\/(www\.)?(youtube|vimeo)\.com', re.I),
     #skipFootnoteLink:      /^\s*(\[?[a-z0-9]{1,2}\]?|^|edit|citation needed)\s*$/i,
 }
 
@@ -407,8 +407,13 @@ class Document:
             if self.class_weight(header) < 0 or self.get_link_density(header) > 0.33:
                 header.drop_tree()
 
-        for elem in self.tags(node, "form", "iframe", "textarea"):
+        for elem in self.tags(node, "form", "textarea"):
             elem.drop_tree()
+
+        for elem in self.tags(node, "iframe"):
+            if not ("src" in elem.attrib and REGEXES["videoRe"].search(elem.attrib["src"])):
+                elem.drop_tree()
+
         allowed = {}
         # Conditionally clean <table>s, <ul>s, and <div>s
         for el in self.reverse_tags(node, "table", "ul", "div"):
