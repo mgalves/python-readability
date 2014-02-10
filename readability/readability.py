@@ -432,6 +432,10 @@ class Document:
         for elem in self.tags(node, "form", "textarea"):
             elem.drop_tree()
 
+        for elem in self.tags(node, "embed"):
+            if not ("src" in elem.attrib and REGEXES["videoRe"].search(elem.attrib["src"])):
+                elem.drop_tree()
+            
         for elem in self.tags(node, "iframe"):
             if "src" in elem.attrib and REGEXES["videoRe"].search(elem.attrib["src"]):
                 elem.text = "VIDEO" # ADD content to iframe text node to force <iframe></iframe> proper output
@@ -501,55 +505,7 @@ class Document:
                     reason = "too many links %.3f for its weight %s" % (
                         link_density, weight)
                     to_remove = True
-                elif (counts["embed"] == 1 and content_length < 75) or counts["embed"] > 1:
-                    reason = "<embed>s with too short content length, or too many <embed>s"
-                    to_remove = True
-#                if el.tag == 'div' and counts['img'] >= 1 and to_remove:
-#                    imgs = el.findall('.//img')
-#                    valid_img = False
-#                    self.debug(tounicode(el))
-#                    for img in imgs:
-#
-#                        height = img.get('height')
-#                        text_length = img.get('text_length')
-#                        self.debug ("height %s text_length %s" %(repr(height), repr(text_length)))
-#                        if to_int(height) >= 100 or to_int(text_length) >= 100:
-#                            valid_img = True
-#                            self.debug("valid image" + tounicode(img))
-#                            break
-#                    if valid_img:
-#                        to_remove = False
-#                        self.debug("Allowing %s" %el.text_content())
-#                        for desnode in self.tags(el, "table", "ul", "div"):
-#                            allowed[desnode] = True
-
-                    #find x non empty preceding and succeeding siblings
-                    i, j = 0, 0
-                    x = 1
-                    siblings = []
-                    for sib in el.itersiblings():
-                        #self.debug(sib.text_content())
-                        sib_content_length = text_length(sib)
-                        if sib_content_length:
-                            i =+ 1
-                            siblings.append(sib_content_length)
-                            if i == x:
-                                break
-                    for sib in el.itersiblings(preceding=True):
-                        #self.debug(sib.text_content())
-                        sib_content_length = text_length(sib)
-                        if sib_content_length:
-                            j =+ 1
-                            siblings.append(sib_content_length)
-                            if j == x:
-                                break
-                    #self.debug(str(siblings))
-                    if siblings and sum(siblings) > 1000:
-                        to_remove = False
-                        self.debug("Allowing %s" % describe(el))
-                        for desnode in self.tags(el, "table", "ul", "div"):
-                            allowed[desnode] = True
-
+                    
                 if to_remove:
                     self.debug("Cleaned %6.3f %s with weight %s cause it has %s." %
                         (content_score, describe(el), weight, reason))

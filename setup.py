@@ -9,7 +9,6 @@ else:
 
 setup(
     name="readability-lxml",
-    version="0.2.6.2",
     author="Miguel Galves",
     author_email="mgalves@gmail.com",
     version="0.3.0.2",
