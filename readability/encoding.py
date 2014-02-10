@@ -1,21 +1,25 @@
 import re
 import chardet
 
+
+HTML_CHARSET_REGEXP = re.compile(r"meta\s+http-equiv=\"content-type\"\s+content=\"[^;]+;\s*charset=([A-Za-z0-9_\-]+)\"", re.I)
+HTML5_CHARSET_REGEXP = re.compile(r"meta\s+charset=\"([A-Za-z0-9_\-]+)\"", re.I)
+
+
 def get_encoding(page):
-    text = re.sub('</?[^>]*>\s*', ' ', page)
-    enc = 'utf-8'
-    if not text.strip() or len(text) < 10:
-        return enc # can't guess
-    try:
-        diff = text.decode(enc, 'ignore').encode(enc)
-        sizes = len(diff), len(text)
-        if abs(len(text) - len(diff)) < max(sizes) * 0.01: # 99% of utf-8
-            return enc
-    except UnicodeDecodeError:
-        pass
-    res = chardet.detect(text)
-    enc = res['encoding']
-    #print '->', enc, "%.2f" % res['confidence']
-    if enc == 'MacCyrillic':
-        enc = 'cp1251'
-    return enc
+    charset = "iso-8859-1" # WEB DEFAULT CHARTE
+
+    for regexp in [HTML_CHARSET_REGEXP, HTML5_CHARSET_REGEXP]:
+        match = regexp.search(page)
+        if match:
+            charset = match.group(1)
+            break
+    else:
+        detected = chardet.detect(page)
+        if detected and "encoding" in detected:
+            charset = detected["encoding"]
+
+    if charset == 'MacCyrillic':
+        charset = 'cp1251'
+
+    return charset
