@@ -447,7 +447,7 @@ class Document:
                     elem.drop_tree()
                 else:
                     for child in elem.getchildren():
-                        if (child.text and child.text.strip()) or child.tail:
+                        if child.tag != "br":
                             break # paragraph contains someting
                     else:
                         elem.drop_tree()
