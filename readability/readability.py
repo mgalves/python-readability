@@ -474,12 +474,7 @@ class Document:
                         content_score = candidates[parent_node]['content_score']
                     else:
                         content_score = 0
-                #if parent_node is not None:
-                    #pweight = self.class_weight(parent_node) + content_score
-                    #pname = describe(parent_node)
-                #else:
-                    #pweight = 0
-                    #pname = "no parent"
+
                 to_remove = False
                 reason = ""
 
@@ -509,14 +504,7 @@ class Document:
                 if to_remove:
                     self.debug("Cleaned %6.3f %s with weight %s cause it has %s." %
                         (content_score, describe(el), weight, reason))
-                    #print tounicode(el)
-                    #self.debug("pname %s pweight %.3f" %(pname, pweight))
                     el.drop_tree()
-
-        for el in ([node] + [n for n in node.iter()]):
-            if not self.options.get('attributes', None):
-                #el.attrib = {} #FIXME:Checkout the effects of disabling this
-                pass
 
         self.html = node
         return self.get_clean_html()
