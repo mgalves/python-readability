@@ -114,6 +114,7 @@ class Document:
         self.encoding = None
         self.positive_keywords = compile_pattern(positive_keywords)
         self.negative_keywords = compile_pattern(negative_keywords)
+        self.base_url = ""
         url = self.options.get("url", "")
         if url:
             parsed_url = urlparse(url)
@@ -148,7 +149,7 @@ class Document:
 
     def normalize_images_path(self, image):
         if not image.attrib["src"].startswith(("//", "https://", "http://")):
-            image.attrib["src"] = "%s%s" % (base_url, image.attrib["src"])
+            image.attrib["src"] = "%s%s" % (self.base_url, image.attrib["src"])
 
     def summary(self, html_partial=False):
         """Generate the summary of the html docuemnt
