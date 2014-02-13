@@ -8,7 +8,7 @@ else:
     lxml = "lxml"
 
 setup(
-    name="readability-lxml",
+    name="python-readability",
     author="Miguel Galves",
     author_email="mgalves@gmail.com",
     version="0.3.0.2",
