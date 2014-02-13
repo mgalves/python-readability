@@ -457,10 +457,18 @@ class Document:
                 elem.drop_tree()
 
         for elem in self.tags(node, "img"):
-            if "src" in elem.attrib:
-                self.normalize_images_path(elem)
+            for attr in ["width", "height"]:
+                try:
+                    if attr in elem.attrib and int(elem.attrib[attr]) < 70:
+                       elem.drop_tree()
+                       break 
+                except:
+                    pass
             else:
-                elem.drop_tree()
+                if "src" in elem.attrib:
+                    self.normalize_images_path(elem)
+                else:
+                    elem.drop_tree()
 
         allowed = {}
         # Conditionally clean <table>s, <ul>s, and <div>s
