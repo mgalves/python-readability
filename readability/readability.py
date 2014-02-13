@@ -27,7 +27,8 @@ REGEXES = {
     'okMaybeItsACandidateRe': re.compile('and|article|body|column|main|shadow', re.I),
     'positiveRe': re.compile('article|body|content|entry|hentry|main|page|pagination|post|text|blog|story', re.I),
     'negativeRe': re.compile('combx|comment|comentario|com-|related-post|contact|foot|footer|footnote|masthead|media|meta|outbrain|promo|related|scroll|shoutbox|sidebar|sponsor|shopping|tags|tool|widget', re.I),
-    'divToPElementsRe': re.compile('<(a|blockquote|dl|div|img|ol|p|pre|table|ul)', re.I),
+    'blockLevelElements': re.compile('<(address|article|aside|audio|blockquote|canvas|dd|dl|div|img|ol|p|pre|section|table|ul|video)', re.I),
+    'inlineElementsRs': re.compile('b|big|i|small|tt|abbr|acronym|cite|code|dfn|em|kbd|strong|samp|var|a|bdo|br|span|sub|sup|', re.I),
     #'replaceBrsRe': re.compile('(<br[^>]*>[ \n\r\t]*){2,}',re.I),
     #'replaceFontsRe': re.compile('<(\/?)font[^>]*>',re.I),
     #'trimRe': re.compile('^\s+|\s+$/'),
@@ -128,7 +129,7 @@ class Document:
     def _parse(self, input):
         doc, self.encoding = build_doc(input)
         doc = html_cleaner.clean_html(doc)
-        base_href = self.options.get('url', None)
+        base_href = self.options.get('url', None)        
         if base_href:
             doc.make_links_absolute(base_href, resolve_base_href=True)
         else:
@@ -168,7 +169,7 @@ class Document:
                     i.set('id', 'readabilityBody')
                 if ruthless:
                     self.remove_unlikely_candidates()
-                self.transform_misused_divs_into_paragraphs()
+                #self.transform_misused_divs_into_paragraphs()
                 candidates = self.score_paragraphs()
 
                 best_candidate = self.select_best_candidate(candidates)
@@ -391,37 +392,17 @@ class Document:
                 elem.drop_tree()
 
     def transform_misused_divs_into_paragraphs(self):
-        for elem in self.tags(self.html, 'div'):
-            # transform <div>s that do not contain other block elements into
-            # <p>s
-            #FIXME: The current implementation ignores all descendants that
-            # are not direct children of elem
-            # This results in incorrect results in case there is an <img>
-            # buried within an <a> for example
-            if not REGEXES['divToPElementsRe'].search(
-                    unicode(''.join(map(tostring, list(elem))))):
-                #self.debug("Altering %s to p" % (describe(elem)))
+        divsToBeAnalyzed  = [elem for elem in self.tags(self.html, 'div')]
+        while divsToBeAnalyzed:
+            div = divsToBeAnalyzed.pop(0)
+            for tag in ["address", "article", "aside", "audio", "blockquote", "canvas", "dd", "dl", "div", "img", "ol", "p", "pre", "section", "table", "ul", "video"]:
+                if div.findall('.//%s' % tag):
+                    # DIV contains at least on block level element. Cannot be transformed in paragraph
+                    # Adds DIV child to further analysis
+                    divsToBeAnalyzed.extend([div for div in self.tags(div, 'div')])
+                    break
+            else:
                 elem.tag = "p"
-                #print "Fixed element "+describe(elem)
-
-        for elem in self.tags(self.html, 'div'):
-            if elem.text and elem.text.strip():
-                p = fragment_fromstring('<p/>')
-                p.text = elem.text
-                elem.text = None
-                elem.insert(0, p)
-                #print "Appended "+tounicode(p)+" to "+describe(elem)
-
-            for pos, child in reversed(list(enumerate(elem))):
-                if child.tail and child.tail.strip():
-                    p = fragment_fromstring('<p/>')
-                    p.text = child.tail
-                    child.tail = None
-                    elem.insert(pos + 1, p)
-                    #print "Inserted "+tounicode(p)+" to "+describe(elem)
-                if child.tag == 'br':
-                    #print 'Dropped <br> at '+describe(elem)
-                    child.drop_tree()
 
     def tags(self, node, *tag_names):
         for tag_name in tag_names:
@@ -444,7 +425,7 @@ class Document:
             if (elem.text is None or not elem.text.strip()) and not elem.getchildren():
                 elem.drop_tree() # removes empty paragraphs and spans
 
-        for elem in self.tags(node, "form", "textarea"):
+        for elem in self.tags(node, "form", "textarea", "button"):
             elem.drop_tree()
 
         for elem in self.tags(node, "embed"):
