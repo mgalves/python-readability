@@ -8,6 +8,7 @@ from lxml.etree import tostring
 from lxml.etree import tounicode
 from lxml.html import document_fromstring
 from lxml.html import fragment_fromstring
+from urlparse import urlparse
 
 from cleaners import clean_attributes
 from cleaners import html_cleaner
@@ -113,6 +114,10 @@ class Document:
         self.encoding = None
         self.positive_keywords = compile_pattern(positive_keywords)
         self.negative_keywords = compile_pattern(negative_keywords)
+        url = self.options.get("url", "")
+        if url:
+            parsed_url = urlparse(url)
+            self.base_url = "%s://%s" % (parsed_url.scheme, parsed_url.hostname)
 
     def _html(self, force=False):
         if force or self.html is None:
@@ -140,6 +145,10 @@ class Document:
 
     def get_clean_html(self):
          return clean_attributes(tounicode(self.html))
+
+    def normalize_images_path(self, image):
+        if not image.attrib["src"].startswith(("//", "https://", "http://")):
+            image.attrib["src"] = "%s%s" % (base_url, image.attrib["src"])
 
     def summary(self, html_partial=False):
         """Generate the summary of the html docuemnt
@@ -439,6 +448,12 @@ class Document:
         for elem in self.tags(node, "iframe"):
             if "src" in elem.attrib and REGEXES["videoRe"].search(elem.attrib["src"]):
                 elem.text = "VIDEO" # ADD content to iframe text node to force <iframe></iframe> proper output
+            else:
+                elem.drop_tree()
+
+        for elem in self.tags(node, "img"):
+            if "src" in elem.attrib:
+                self.normalize_images_path(elem)
             else:
                 elem.drop_tree()
 
