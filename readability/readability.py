@@ -439,6 +439,10 @@ class Document:
             if self.class_weight(header) < 0 or self.get_link_density(header) > 0.33:
                 header.drop_tree()
 
+        for elem in self.tags(node, "p", "span"):
+            if (elem.text is None or not elem.text.strip()) and not elem.getchildren():
+                elem.drop_tree() # removes empty paragraphs and spans
+
         for elem in self.tags(node, "form", "textarea"):
             elem.drop_tree()
 
