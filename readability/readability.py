@@ -22,13 +22,16 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger()
 
 
+BLOCK_LEVEL_ELEMENTS= ["address", "article", "aside", "audio", "blockquote", "canvas", "dd", "dl", "div", "img", "ol", "p", "pre", "section", "table", "ul", "video"]
+INLINE_ELEMENTS = ["b", "big", "i", "small", "tt", "abbr", "acronym", "cite", "code", "dfn", "em", "kbd", "strong", "samp", "var", "a", "bdo", "br", "span", "sub", "sup"]
+
 REGEXES = {
     'unlikelyCandidatesRe': re.compile('combx|comment|comentario|community|disqus|extra|foot|header|menu|remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate|pagination|pager|popup|tweet|twitter', re.I),
     'okMaybeItsACandidateRe': re.compile('and|article|body|column|main|shadow', re.I),
     'positiveRe': re.compile('article|body|content|entry|hentry|main|page|pagination|post|text|blog|story', re.I),
     'negativeRe': re.compile('combx|comment|comentario|com-|related-post|contact|foot|footer|footnote|masthead|media|meta|outbrain|promo|related|scroll|shoutbox|sidebar|sponsor|shopping|tags|tool|widget', re.I),
-    'blockLevelElements': re.compile('<(address|article|aside|audio|blockquote|canvas|dd|dl|div|img|ol|p|pre|section|table|ul|video)', re.I),
-    'inlineElementsRs': re.compile('b|big|i|small|tt|abbr|acronym|cite|code|dfn|em|kbd|strong|samp|var|a|bdo|br|span|sub|sup|', re.I),
+    'blockLevelElements': re.compile("|".join(BLOCK_LEVEL_ELEMENTS), re.I),
+    'inlineElementsRs': re.compile("|".join(INLINE_ELEMENTS), re.I),
     #'replaceBrsRe': re.compile('(<br[^>]*>[ \n\r\t]*){2,}',re.I),
     #'replaceFontsRe': re.compile('<(\/?)font[^>]*>',re.I),
     #'trimRe': re.compile('^\s+|\s+$/'),
@@ -169,7 +172,7 @@ class Document:
                     i.set('id', 'readabilityBody')
                 if ruthless:
                     self.remove_unlikely_candidates()
-                #self.transform_misused_divs_into_paragraphs()
+                self.transform_misused_divs_into_paragraphs()
                 candidates = self.score_paragraphs()
 
                 best_candidate = self.select_best_candidate(candidates)
@@ -395,14 +398,34 @@ class Document:
         divsToBeAnalyzed  = [elem for elem in self.tags(self.html, 'div')]
         while divsToBeAnalyzed:
             div = divsToBeAnalyzed.pop(0)
-            for tag in ["address", "article", "aside", "audio", "blockquote", "canvas", "dd", "dl", "div", "img", "ol", "p", "pre", "section", "table", "ul", "video"]:
-                if div.findall('.//%s' % tag):
+            for tag in BLOCK_LEVEL_ELEMENTS:
+                if div.find('.//%s' % tag) is not None:
                     # DIV contains at least on block level element. Cannot be transformed in paragraph
                     # Adds DIV child to further analysis
                     divsToBeAnalyzed.extend([div for div in self.tags(div, 'div')])
+                    # current_paragraph = fragment_fromstring('<p/>')
+                    # if div.text and div.text.strip():
+                    #     current_paragraph.text = div.text
+                    #     div.text = None
+
+                    # for pos, child in list(enumerate(div)):
+                    #     if child.tag in BLOCK_LEVEL_ELEMENTS:
+                    #         if current_paragraph.text:
+                    #             div.insert(0, current_paragraph)
+                    #         # ELEMENTO BLOCO. PARAGRAFO ANTERIOR TEM QUE SER 'FECHADO'
+                    #         # NOVO PARAGRAFO TEM QUE SER CRIADO
+                    #         current_paragraph = fragment_fromstring('<p/>')
+                    #         div.insert(pos + 1, current_paragraph)
+
+                    #     if child.tail and child.tail.strip():
+                    #         current_paragraph.text = current_paragraph.text + child.tail if current_paragraph.text else current_paragraph.text
+                    #     if child.tag == 'br':
+                    #         #print 'Dropped <br> at '+describe(elem)
+                    #         child.drop_tree()
                     break
             else:
-                elem.tag = "p"
+                div.tag = "p"
+
 
     def tags(self, node, *tag_names):
         for tag_name in tag_names:
