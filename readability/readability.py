@@ -451,7 +451,7 @@ class Document:
                 current_paragraph = fragment_fromstring('<p/>')
 
                 if has_text(div):
-                    current_paragraph.text = div.text
+                    current_paragraph.text = div.text.strip()
                     div.text = None
 
                 for pos, child in list(enumerate(div)):
@@ -492,19 +492,14 @@ class Document:
             if self.class_weight(header) < 0 or self.get_link_density(header) > 0.33:
                 header.drop_tree()
 
-         # removes empty paragraphs and spans
-        for elem in self.tags(node, "p", "span"):
-            if (elem.text is None or not elem.text.strip()):
-                if not elem.getchildren():
-                    elem.drop_tree()
-                else:
-                    for child in elem.getchildren():
-                        if child.tag != "br":
-                            break # paragraph contains someting
-                    else:
-                        elem.drop_tree()
+        # removes empty paragraphs and inline elements, and removes unwanted lead spaces
+        for elem in self.tags(node, "p", *INLINE_ELEMENTS):
+            if elem.text:
+                elem.text = elem.text.strip()
+            if is_empty_node(elem):
+                elem.drop_tree()
 
-        for elem in self.tags(node, "form", "textarea", "button"):
+        for elem in self.tags(node, "form", "textarea", "button", "aside"):
             elem.drop_tree()
 
         for elem in self.tags(node, "embed"):
