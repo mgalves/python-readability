@@ -202,7 +202,6 @@ class Document:
 
                 best_candidate = self.select_best_candidate(candidates)
 
-
                 if best_candidate:
                     article = self.get_article(candidates, best_candidate,
                             html_partial=html_partial)
@@ -222,6 +221,7 @@ class Document:
                         article = self.html.find('body')
                         if article is None:
                             article = self.html
+
                 cleaned_article = self.sanitize(article, candidates)
 
                 article_length = len(cleaned_article or '')
@@ -253,6 +253,7 @@ class Document:
         else:
             output = document_fromstring('<div/>')
         best_elem = best_candidate['elem']
+
         for sibling in best_elem.getparent().getchildren():
             # in lxml there no concept of simple text
             # if isinstance(sibling, NavigableString): continue
@@ -416,41 +417,44 @@ class Document:
                 elem.drop_tree()
 
     def transform_misused_divs_into_paragraphs(self):
-        divsToBeAnalyzed  = [elem for elem in self.tags(self.html, 'div')]
-        while divsToBeAnalyzed:
-            div = divsToBeAnalyzed.pop(0)
-            if is_empty_node(div):
+        divsToBeAnalyzed = list(self.html.findall('.//div'))
+
+        for div in divsToBeAnalyzed:
+            if is_empty_node(div) and div.getparent() is not None:
                 div.drop_tree()
+                continue
             for tag in BLOCK_LEVEL_ELEMENTS:
-                if div.find('.//%s' % tag) is not None:
-                    # DIV contains at least on block level element. Cannot be transformed in paragraph
-                    # Adds DIV child to further analysis
-                    divsToBeAnalyzed.extend([div for div in self.tags(div, 'div')])
-                    # current_paragraph = fragment_fromstring('<p/>')
-                    # if div.text and div.text.strip():
-                    #     current_paragraph.text = div.text
-                    #     div.text = None
+                if div.find('.//%s' % tag) is not None:                 
+                    childs = []
+                    current_paragraph = fragment_fromstring('<p/>')
 
-                    # for pos, child in list(enumerate(div)):
-                    #     if child.tag in BLOCK_LEVEL_ELEMENTS:
-                    #         if current_paragraph.text:
-                    #             div.insert(0, current_paragraph)
-                    #         # ELEMENTO BLOCO. PARAGRAFO ANTERIOR TEM QUE SER 'FECHADO'
-                    #         # NOVO PARAGRAFO TEM QUE SER CRIADO
-                    #         current_paragraph = fragment_fromstring('<p/>')
-                    #         div.insert(pos + 1, current_paragraph)
+                    if has_text(div):
+                        current_paragraph.text = div.text
+                        div.text = None
 
-                    #     if child.tail and child.tail.strip():
-                    #         current_paragraph.text = current_paragraph.text + child.tail if current_paragraph.text else current_paragraph.text
-                    #     if child.tag == 'br':
-                    #         #print 'Dropped <br> at '+describe(elem)
-                    #         child.drop_tree()
+                    for pos, child in list(enumerate(div)):
+                        if child.tag in BLOCK_LEVEL_ELEMENTS:
+                            childs.append(current_paragraph)
+                            childs.append(child)
+                            # ELEMENTO BLOCO. PARAGRAFO ANTERIOR TEM QUE SER 'FECHADO'
+                            # NOVO PARAGRAFO TEM QUE SER CRIADO
+                            current_paragraph = fragment_fromstring('<p/>')
+                        else:
+                            if child.tag == 'br':
+                                child.drop_tree()
+                                continue
+                            current_paragraph.append(child)
+    
+                    childs.append(current_paragraph)
+                    newdiv = fragment_fromstring("<div/>")
+                    for c in childs:
+                        if not is_empty_node(c):
+                            newdiv.append(c)
+
+                    div.getparent().replace(div, newdiv)
                     break
             else:
                 div.tag = "p"
-
-        print tounicode(self.html).encode("utf-8", 'replace')
-
 
     def tags(self, node, *tag_names):
         for tag_name in tag_names:
