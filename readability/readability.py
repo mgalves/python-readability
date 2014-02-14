@@ -46,6 +46,39 @@ class Unparseable(ValueError):
     pass
 
 
+def has_text(node):
+    """
+    >>> has_text(fragment_fromstring('<div/>'))
+    False
+    >>> has_text(fragment_fromstring('<div>   </div>'))
+    False
+    >>> has_text(fragment_fromstring('<div>  fsfdsff </div>'))
+    True
+    >>> has_text(fragment_fromstring('<div>  fsfdsff<a>oi mundo</a></div>'))
+    True
+    """
+    if node.text is not None and node.text.strip():
+        return True
+    else:
+        return False
+
+
+def is_empty_node(node):
+    """
+    >>> is_empty_node(fragment_fromstring('<div/>'))
+    True
+    >>> is_empty_node(fragment_fromstring('<div>   </div>'))
+    True
+    >>> is_empty_node(fragment_fromstring('<div>  fsfdsff </div>'))
+    False
+    >>> is_empty_node(fragment_fromstring('<div><a>Ola mundo</a></div>'))
+    False
+    >>> is_empty_node(fragment_fromstring('<div>  fsfdsff<a>oi mundo</a></div>'))
+    False
+    """
+    return not has_text(node) and not node.getchildren()
+
+
 def describe(node, depth=1):
     if not hasattr(node, 'tag'):
         return "[%s]" % type(node)
@@ -176,6 +209,7 @@ class Document:
                 candidates = self.score_paragraphs()
 
                 best_candidate = self.select_best_candidate(candidates)
+
 
                 if best_candidate:
                     article = self.get_article(candidates, best_candidate,
@@ -393,6 +427,8 @@ class Document:
         divsToBeAnalyzed  = [elem for elem in self.tags(self.html, 'div')]
         while divsToBeAnalyzed:
             div = divsToBeAnalyzed.pop(0)
+            if is_empty_node(div):
+                div.drop_tree()
             for tag in BLOCK_LEVEL_ELEMENTS:
                 if div.find('.//%s' % tag) is not None:
                     # DIV contains at least on block level element. Cannot be transformed in paragraph
@@ -420,6 +456,8 @@ class Document:
                     break
             else:
                 div.tag = "p"
+
+        print tounicode(self.html).encode("utf-8", 'replace')
 
 
     def tags(self, node, *tag_names):
@@ -577,4 +615,6 @@ def main():
         file.close()
 
 if __name__ == '__main__':
+    import doctest
+    doctest.testmod()
     main()
