@@ -254,6 +254,9 @@ class Document:
             output = document_fromstring('<div/>')
         best_elem = best_candidate['elem']
 
+        if best_elem.tag == "body":
+            best_elem.tag = "div"
+
         for sibling in best_elem.getparent().getchildren():
             # in lxml there no concept of simple text
             # if isinstance(sibling, NavigableString): continue
