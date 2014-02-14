@@ -233,7 +233,7 @@ class Document:
             append = False
             if sibling is best_elem:
                 append = True
-            sibling_key = sibling  # HashableElement(sibling)
+            sibling_key = sibling
             if sibling_key in candidates and \
                 candidates[sibling_key]['content_score'] >= sibling_score_threshold:
                 append = True
@@ -257,8 +257,6 @@ class Document:
                     output.append(sibling)
                 else:
                     output.getchildren()[0].getchildren()[0].append(sibling)
-        #if output is not None:
-        #    output.append(best_elem)
         return output
 
     def select_best_candidate(self, candidates):
@@ -316,8 +314,6 @@ class Document:
             content_score = 1
             content_score += len(inner_text.split(','))
             content_score += min((inner_text_len / 100), 3)
-            #if elem not in candidates:
-            #    candidates[elem] = self.score_node(elem)
 
             #WTF? candidates[elem]['content_score'] += content_score
             candidates[parent_node]['content_score'] += content_score
@@ -389,7 +385,6 @@ class Document:
             s = "%s %s" % (elem.get('class', ''), elem.get('id', ''))
             if len(s) < 2:
                 continue
-            #self.debug(s)
             if REGEXES['unlikelyCandidatesRe'].search(s) and (not REGEXES['okMaybeItsACandidateRe'].search(s)) and elem.tag not in ['html', 'body']:
                 self.debug("Removing unlikely candidate - %s" % describe(elem))
                 elem.drop_tree()
@@ -549,33 +544,6 @@ class Document:
 
         self.html = node
         return self.get_clean_html()
-
-
-class HashableElement():
-    def __init__(self, node):
-        self.node = node
-        self._path = None
-
-    def _get_path(self):
-        if self._path is None:
-            reverse_path = []
-            node = self.node
-            while node is not None:
-                node_id = (node.tag, tuple(node.attrib.items()), node.text)
-                reverse_path.append(node_id)
-                node = node.getparent()
-            self._path = tuple(reverse_path)
-        return self._path
-    path = property(_get_path)
-
-    def __hash__(self):
-        return hash(self.path)
-
-    def __eq__(self, other):
-        return self.path == other.path
-
-    def __getattr__(self, tag):
-        return getattr(self.node, tag)
 
 
 def main():
