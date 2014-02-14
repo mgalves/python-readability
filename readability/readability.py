@@ -94,17 +94,6 @@ def describe(node, depth=1):
     return name
 
 
-def to_int(x):
-    if not x:
-        return None
-    x = x.strip()
-    if x.endswith('px'):
-        return int(x[:-2])
-    if x.endswith('em'):
-        return int(x[:-2]) * 12
-    return int(x)
-
-
 def clean(text):
     text = re.sub('\s*\n\s*', '\n', text)
     text = re.sub('[ \t]{2,}', ' ', text)
@@ -114,7 +103,9 @@ def clean(text):
 def text_length(i):
     return len(clean(i.text_content() or ""))
 
+
 regexp_type = type(re.compile('hello, world'))
+
 
 def compile_pattern(elements):
     if not elements:
@@ -124,6 +115,7 @@ def compile_pattern(elements):
     if isinstance(elements, basestring):
         elements = elements.split(',')
     return re.compile(u'|'.join([re.escape(x.lower()) for x in elements]), re.U)
+
 
 class Document:
     """Class to build a etree document out of html."""
