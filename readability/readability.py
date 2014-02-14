@@ -492,8 +492,8 @@ class Document:
             if self.class_weight(header) < 0 or self.get_link_density(header) > 0.33:
                 header.drop_tree()
 
-        # removes empty paragraphs and inline elements, and removes unwanted lead spaces
-        for elem in self.tags(node, "p", *INLINE_ELEMENTS):
+        # removes empty paragraphs and removes unwanted lead spaces
+        for elem in self.tags(node, "p"):
             if elem.text:
                 elem.text = elem.text.strip()
             if is_empty_node(elem):
