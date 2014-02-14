@@ -46,6 +46,23 @@ class Unparseable(ValueError):
     pass
 
 
+def contains_one_or_more_tags(node, *tags):
+    """
+    >>> contains_one_or_more_tags(fragment_fromstring('<div/>'), 'div')
+    False
+    >>> contains_one_or_more_tags(fragment_fromstring('<div>   </div>'), 'div', 'p')
+    False
+    >>> contains_one_or_more_tags(fragment_fromstring('<div>  fsfdsff<a>oi mundo</a></div>'), 'p', 'a')
+    True
+    >>> contains_one_or_more_tags(fragment_fromstring('<div>  fsfdsff<a>oi mundo</a></div>'), 'a')
+    True
+    """
+    for tag in tags:
+        if node.find('.//%s' % tag) is not None:
+            return True
+    return False
+
+
 def has_text(node):
     """
     >>> has_text(fragment_fromstring('<div/>'))
@@ -426,37 +443,36 @@ class Document:
             if is_empty_node(div) and div.getparent() is not None:
                 div.drop_tree()
                 continue
-            for tag in BLOCK_LEVEL_ELEMENTS:
-                if div.find('.//%s' % tag) is not None:                 
-                    childs = []
-                    current_paragraph = fragment_fromstring('<p/>')
 
-                    if has_text(div):
-                        current_paragraph.text = div.text
-                        div.text = None
+            if contains_one_or_more_tags(div, *BLOCK_LEVEL_ELEMENTS):
+                # Div contains both block elments and inline elements.
+                # Group adjacent inline elements inside paragraphs
+                childs = []
+                current_paragraph = fragment_fromstring('<p/>')
 
-                    for pos, child in list(enumerate(div)):
-                        if child.tag in BLOCK_LEVEL_ELEMENTS:
-                            childs.append(current_paragraph)
-                            childs.append(child)
-                            # ELEMENTO BLOCO. PARAGRAFO ANTERIOR TEM QUE SER 'FECHADO'
-                            # NOVO PARAGRAFO TEM QUE SER CRIADO
-                            current_paragraph = fragment_fromstring('<p/>')
-                        else:
-                            if child.tag == 'br':
-                                child.drop_tree()
-                                continue
-                            current_paragraph.append(child)
-    
-                    childs.append(current_paragraph)
-                    newdiv = fragment_fromstring("<div/>")
-                    for c in childs:
-                        if not is_empty_node(c):
-                            newdiv.append(c)
+                if has_text(div):
+                    current_paragraph.text = div.text
+                    div.text = None
 
-                    div.getparent().replace(div, newdiv)
-                    break
+                for pos, child in list(enumerate(div)):
+                    if child.tag in BLOCK_LEVEL_ELEMENTS:
+                        childs.append(current_paragraph)
+                        childs.append(child)
+                        # ELEMENTO BLOCO. PARAGRAFO ANTERIOR TEM QUE SER 'FECHADO'
+                        # NOVO PARAGRAFO TEM QUE SER CRIADO
+                        current_paragraph = fragment_fromstring('<p/>')
+                    else:
+                        current_paragraph.append(child)
+
+                childs.append(current_paragraph)
+                newdiv = fragment_fromstring("<div/>")
+                for c in childs:
+                    if not is_empty_node(c):
+                        newdiv.append(c)
+
+                div.getparent().replace(div, newdiv)
             else:
+                # The DIV can become a P
                 div.tag = "p"
 
     def tags(self, node, *tag_names):
