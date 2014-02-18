@@ -495,11 +495,11 @@ class Document:
         # removes empty paragraphs and removes unwanted lead spaces
         for elem in self.tags(node, "p"):
             if elem.text:
-                elem.text = elem.text.strip()
+                elem.text = elem.text.lstrip()
             if is_empty_node(elem):
                 elem.drop_tree()
 
-        for elem in self.tags(node, "form", "textarea", "button", "aside"):
+        for elem in self.tags(node, "form", "textarea", "input", "button", "aside"):
             elem.drop_tree()
 
         for elem in self.tags(node, "embed"):
