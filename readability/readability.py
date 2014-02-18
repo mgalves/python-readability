@@ -481,11 +481,12 @@ class Document:
         """
         while True:
             parent = node.getparent()
-            node.drop_tree()
-            if parent is not None and is_empty_node(parent):
-                node = parent
-            else:
-                break
+            if parent is not None:
+                node.drop_tree()
+                if is_empty_node(parent):
+                    node = parent
+                    continue
+            break
 
     def tags(self, node, *tag_names):
         for tag_name in tag_names:
