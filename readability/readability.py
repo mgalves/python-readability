@@ -475,6 +475,18 @@ class Document:
                 # The DIV can become a P
                 div.tag = "p"
 
+    def drop_node_and_empty_parents(self, node):
+        """
+        Removes given element and hierarchy if everything is empty
+        """
+        while True:
+            parent = node.getparent()
+            node.drop_tree()
+            if parent is not None and is_empty_node(parent):
+                node = parent
+            else:
+                break
+
     def tags(self, node, *tag_names):
         for tag_name in tag_names:
             for e in node.findall('.//%s' % tag_name):
@@ -490,10 +502,10 @@ class Document:
             self.TEXT_LENGTH_THRESHOLD)
         for header in self.tags(node, "h1", "h2", "h3", "h4", "h5", "h6"):
             if self.class_weight(header) < 0 or self.get_link_density(header) > 0.33:
-                header.drop_tree()
+                self.drop_node_and_empty_parents(header)
 
         # Transforms articles and sections into divs
-        for elem in self.tags(node, "article", "section"):
+        for elem in self.tags(node, "article", "section", "header"):
             elem.tag = "div"
 
         # removes empty paragraphs and removes unwanted lead spaces
@@ -502,25 +514,26 @@ class Document:
                 elem.text = elem.text.lstrip()
             if is_empty_node(elem):
                 elem.drop_tree()
+                self.drop_node_and_empty_parents(elem)
 
-        for elem in self.tags(node, "form", "textarea", "input", "button", "aside"):
-            elem.drop_tree()
+        for elem in self.tags(node, "form", "textarea", "input", "button", "select", "aside"):
+            self.drop_node_and_empty_parents(elem)
 
         for elem in self.tags(node, "embed"):
             if not ("src" in elem.attrib and REGEXES["videoRe"].search(elem.attrib["src"])):
-                elem.drop_tree()
+                self.drop_node_and_empty_parents(elem)
             
         for elem in self.tags(node, "iframe"):
             if "src" in elem.attrib and REGEXES["videoRe"].search(elem.attrib["src"]):
                 elem.text = "VIDEO" # ADD content to iframe text node to force <iframe></iframe> proper output
             else:
-                elem.drop_tree()
+                self.drop_node_and_empty_parents(elem)
 
         for elem in self.tags(node, "img"):
             for attr in ["width", "height"]:
                 try:
                     if attr in elem.attrib and int(elem.attrib[attr]) < 70:
-                       elem.drop_tree()
+                       self.drop_node_and_empty_parents(elem)
                        break 
                 except:
                     pass
@@ -528,7 +541,7 @@ class Document:
                 if "src" in elem.attrib:
                     self.normalize_images_path(elem)
                 else:
-                    elem.drop_tree()
+                    self.drop_node_and_empty_parents(elem)
 
         allowed = {}
         # Conditionally clean <table>s, <ul>s, and <div>s
@@ -592,7 +605,7 @@ class Document:
                 if to_remove:
                     self.debug("Cleaned %6.3f %s with weight %s cause it has %s." %
                         (content_score, describe(el), weight, reason))
-                    el.drop_tree()
+                    self.drop_node_and_empty_parents(elem)
 
         self.html = node
         return self.get_clean_html()
