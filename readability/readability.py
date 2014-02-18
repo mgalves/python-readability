@@ -32,11 +32,7 @@ REGEXES = {
     'negativeRe': re.compile('combx|comment|comentario|com-|related-post|contact|foot|footer|footnote|masthead|media|meta|outbrain|promo|related|scroll|shoutbox|sidebar|sponsor|shopping|tags|tool|widget', re.I),
     'blockLevelElements': re.compile("|".join(BLOCK_LEVEL_ELEMENTS), re.I),
     'inlineElementsRs': re.compile("|".join(INLINE_ELEMENTS), re.I),
-    #'replaceBrsRe': re.compile('(<br[^>]*>[ \n\r\t]*){2,}',re.I),
-    #'replaceFontsRe': re.compile('<(\/?)font[^>]*>',re.I),
-    #'trimRe': re.compile('^\s+|\s+$/'),
-    #'normalizeRe': re.compile('\s{2,}/'),
-    #'killBreaksRe': re.compile('(<br\s*\/?>(\s|&nbsp;?)*){1,}/'),
+    'shareLinks': re.compile("twitter.com\/share|pinterest.com\/pin\/create", re.I),
     'videoRe': re.compile('http:\/\/(www\.)?(youtube|vimeo)\.com', re.I),
     #skipFootnoteLink:      /^\s*(\[?[a-z0-9]{1,2}\]?|^|edit|citation needed)\s*$/i,
 }
@@ -193,9 +189,21 @@ class Document:
     def get_clean_html(self):
          return clean_attributes(tounicode(self.html))
 
-    def normalize_images_path(self, image):
-        if not image.attrib["src"].startswith(("//", "https://", "http://")):
-            image.attrib["src"] = "%s%s" % (self.base_url, image.attrib["src"])
+    def sanitize_image(self, image):
+        for attr in ["width", "height"]:
+            try:
+                if attr in image.attrib and int(image.attrib[attr]) < 70:
+                   self.drop_node_and_empty_parents(image)
+                   break 
+            except:
+                pass
+        else:
+            if "src" in image.attrib:
+                if not image.attrib["src"].startswith(("//", "https://", "http://")):
+                    image.attrib["src"] = "%s%s" % (self.base_url, image.attrib["src"])
+            else:
+                self.drop_node_and_empty_parents(image)
+
 
     def summary(self, html_partial=False):
         """Generate the summary of the html docuemnt
@@ -514,10 +522,17 @@ class Document:
             if elem.text:
                 elem.text = elem.text.lstrip()
             if is_empty_node(elem):
-                elem.drop_tree()
                 self.drop_node_and_empty_parents(elem)
 
-        for elem in self.tags(node, "form", "textarea", "input", "button", "select", "aside"):
+        for elem in self.tags(node, "a"):
+            if "href" in elem.attrib and REGEXES['shareLinks'].search(elem.attrib["href"]) or is_empty_node(elem):
+                self.drop_node_and_empty_parents(elem)
+
+        for elem in self.tags(node, "span"):
+            if is_empty_node(elem):
+                self.drop_node_and_empty_parents(elem)
+
+        for elem in self.tags(node, "form", "textarea", "input", "button", "select", "aside", "footer"):
             self.drop_node_and_empty_parents(elem)
 
         for elem in self.tags(node, "embed"):
@@ -531,18 +546,7 @@ class Document:
                 self.drop_node_and_empty_parents(elem)
 
         for elem in self.tags(node, "img"):
-            for attr in ["width", "height"]:
-                try:
-                    if attr in elem.attrib and int(elem.attrib[attr]) < 70:
-                       self.drop_node_and_empty_parents(elem)
-                       break 
-                except:
-                    pass
-            else:
-                if "src" in elem.attrib:
-                    self.normalize_images_path(elem)
-                else:
-                    self.drop_node_and_empty_parents(elem)
+            self.sanitize_image(elem)
 
         allowed = {}
         # Conditionally clean <table>s, <ul>s, and <div>s
