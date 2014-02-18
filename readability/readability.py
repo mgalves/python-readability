@@ -492,6 +492,10 @@ class Document:
             if self.class_weight(header) < 0 or self.get_link_density(header) > 0.33:
                 header.drop_tree()
 
+        # Transforms articles and sections into divs
+        for elem in self.tags(node, "article", "section"):
+            elem.tag = "div"
+
         # removes empty paragraphs and removes unwanted lead spaces
         for elem in self.tags(node, "p"):
             if elem.text:
