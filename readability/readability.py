@@ -193,8 +193,8 @@ class Document:
         for attr in ["width", "height"]:
             try:
                 if attr in image.attrib and int(image.attrib[attr]) < 70:
-                   self.drop_node_and_empty_parents(image)
-                   break 
+                    self.drop_node_and_empty_parents(image)
+                    break 
             except:
                 pass
         else:
@@ -551,12 +551,12 @@ class Document:
         allowed = {}
         # Conditionally clean <table>s, <ul>s, and <div>s
         for el in self.reverse_tags(node, "table", "ul", "div"):
+
             if el in allowed:
                 continue
             weight = self.class_weight(el)
             if el in candidates:
                 content_score = candidates[el]['content_score']
-                #print '!',el, '-> %6.3f' % content_score
             else:
                 content_score = 0
             tag = el.tag
@@ -610,7 +610,7 @@ class Document:
                 if to_remove:
                     self.debug("Cleaned %6.3f %s with weight %s cause it has %s." %
                         (content_score, describe(el), weight, reason))
-                    self.drop_node_and_empty_parents(elem)
+                    self.drop_node_and_empty_parents(el)
 
         self.html = node
         return self.get_clean_html()
