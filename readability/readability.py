@@ -39,8 +39,7 @@ UNLIKELY_CANDIDATES = ["combx", "comment", "comentario", "community", "disqus", 
 
 
 UNLIKELY_TAGS = set(["fb:like", "fb:share-button", "fb:send", "fb:post", "fb:follow", "fb:comments"
-                 "fb-activity", "fb:recommendations", "fb:recommendations-bar", "fb:like-box",
-                 "fb:facepile"])
+                 "fb-activity", "fb:recommendations", "fb:recommendations-bar", "fb:like-box", "fb:facepile"])
 
 
 REGEXES = {
@@ -530,7 +529,7 @@ class Document:
     def sanitize(self, node, candidates):
         MIN_LEN = self.options.get('min_text_length',
             self.TEXT_LENGTH_THRESHOLD)
-        for header in self.tags(node, "h1", "h2", "h3", "h4", "h5", "h6"):
+        for header in self.tags(node, "h1", "h2", "h3", "h4", "h5", "h6", "p"):
             if self.class_weight(header) < 0 or self.get_link_density(header) > 0.33:
                 self.drop_node_and_empty_parents(header)
 
