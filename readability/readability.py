@@ -22,19 +22,36 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger()
 
 
-BLOCK_LEVEL_ELEMENTS= ["address", "article", "aside", "audio", "blockquote", "canvas", "dd", "dl", "div", "img", "ol", "p", "pre", "section", "table", "ul", "video"]
-INLINE_ELEMENTS = ["b", "big", "i", "small", "tt", "abbr", "acronym", "cite", "code", "dfn", "em", "kbd", "strong", "samp", "var", "a", "bdo", "br", "span", "sub", "sup"]
+BLOCK_LEVEL_ELEMENTS= ["address", "article", "aside", "audio", "blockquote", "canvas", 
+                        "dd", "dl", "div", "img", "ol", "p", "pre", "section", "table", "ul", "video"]
+
+
+INLINE_ELEMENTS = ["b", "big", "i", "small", "tt", "abbr", "acronym", "cite", "code", "dfn", "em", 
+                    "kbd", "strong", "samp", "var", "a", "bdo", "br", "span", "sub", "sup"]
+
+
+
+UNLIKELY_CANDIDATES = ["combx", "comment", "comentario", "community", "disqus", "extra", "foot", "header", "menu", 
+                        "remark", "rss", "shoutbox", "sidebar", "sponsor", "ad-break", "agegate", "pagination", 
+                        "pager", "popup", "tweet", "twitter", "fb-share-button", "fb-like", "fb-send", "fb-post",
+                        "fb-follow", "fb-comments", "fb-activity", "fb-recommendations", "fb-like-box",
+                        "fb-facepile"]
+
+
+UNLIKELY_TAGS = set(["fb:like", "fb:share-button", "fb:send", "fb:post", "fb:follow", "fb:comments"
+                 "fb-activity", "fb:recommendations", "fb:recommendations-bar", "fb:like-box",
+                 "fb:facepile"])
+
 
 REGEXES = {
-    'unlikelyCandidatesRe': re.compile('combx|comment|comentario|community|disqus|extra|foot|header|menu|remark|rss|shoutbox|sidebar|sponsor|ad-break|agegate|pagination|pager|popup|tweet|twitter', re.I),
+    'unlikelyCandidatesRe': re.compile("|".join(UNLIKELY_CANDIDATES), re.I),
     'okMaybeItsACandidateRe': re.compile('and|article|body|column|main|shadow', re.I),
     'positiveRe': re.compile('article|body|content|entry|hentry|main|page|pagination|post|text|blog|story', re.I),
     'negativeRe': re.compile('combx|comment|comentario|com-|related-post|contact|foot|footer|footnote|masthead|media|meta|outbrain|promo|related|scroll|shoutbox|sidebar|sponsor|shopping|tags|tool|widget', re.I),
     'blockLevelElements': re.compile("|".join(BLOCK_LEVEL_ELEMENTS), re.I),
     'inlineElementsRs': re.compile("|".join(INLINE_ELEMENTS), re.I),
-    'shareLinks': re.compile("twitter.com\/share|pinterest.com\/pin\/create", re.I),
+    'shareLinks': re.compile("twitter.com\/share|pinterest.com\/pin\/create|facebook.com\/sharer", re.I),
     'videoRe': re.compile('http:\/\/(www\.)?(youtube|vimeo)\.com', re.I),
-    #skipFootnoteLink:      /^\s*(\[?[a-z0-9]{1,2}\]?|^|edit|citation needed)\s*$/i,
 }
 
 
@@ -437,10 +454,14 @@ class Document:
 
     def remove_unlikely_candidates(self):
         for elem in self.html.iter():
+            if elem.tag in UNLIKELY_TAGS:
+                self.drop_node_and_empty_parents(elem)
             s = "%s %s" % (elem.get('class', ''), elem.get('id', ''))
             if len(s) < 2:
                 continue
-            if REGEXES['unlikelyCandidatesRe'].search(s) and (not REGEXES['okMaybeItsACandidateRe'].search(s)) and elem.tag not in ['html', 'body']:
+            if REGEXES['unlikelyCandidatesRe'].search(s) \
+               and (not REGEXES['okMaybeItsACandidateRe'].search(s)) \
+               and elem.tag not in ['html', 'body']:
                 self.debug("Removing unlikely candidate - %s" % describe(elem))
                 elem.drop_tree()
 
